@@ -1,0 +1,22 @@
+{
+  "name": "mediapackage-ingest-urls-handler",
+  "version": "1.0.0",
+  "description": "TypeScript Lambda handler for MediaPackage ingest URLs retrieval",
+  "main": "mediapackage-ingest-urls-handler.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf *.js *.d.ts",
+    "prebuild": "npm run clean"
+  },
+  "dependencies": {
+    "@aws-sdk/client-mediapackagev2": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

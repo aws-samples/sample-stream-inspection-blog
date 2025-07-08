@@ -1,0 +1,60 @@
+%YAML 1.1
+---
+vars:
+  address-groups:
+    HOME_NET: "[10.0.0.0/8]"
+    EXTERNAL_NET: "!$HOME_NET"
+
+# NFQUEUE configuration
+nfqueue:
+  - id: 0
+    mode: accept
+
+# Application layer protocols
+app-layer:
+  protocols:
+    geneve:
+      enabled: yes
+      ports:
+        - 6081
+
+# Output configuration
+outputs:
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      types:
+        - alert
+        - flow
+        - geneve
+
+# Logging
+logging:
+  default-log-level: info
+  outputs:
+  - file:
+      enabled: yes
+      level: info
+      filename: suricata.log
+
+# Rules
+default-rule-path: /var/lib/suricata/rules
+rule-files:
+  - suricata.rules
+
+# Basic performance settings
+threading:
+  set-cpu-affinity: no
+
+# Memory settings
+memcap: 32mb
+stream:
+  memcap: 64mb
+flow:
+  memcap: 128mb

@@ -1,0 +1,28 @@
+name: stream-inspection
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - nodejs>=18
+  - pip
+  # FFmpeg and multimedia dependencies
+  - ffmpeg
+  - x264
+  - x265
+  - libvpx
+  - libopus
+  - libvorbis
+  - libaom
+  - libass
+  - libfreetype
+  - libfontconfig
+  - libfdk-aac
+  - libmp3lame
+  - libtheora
+  - libwebp
+  - openh264
+  - pip:
+    - aws-cdk-lib
+    - constructs
+    - typescript
