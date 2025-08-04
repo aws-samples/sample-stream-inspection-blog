@@ -6,6 +6,8 @@ This project demonstrates how to build a secure streaming media system on AWS us
 
 The system uses a dual-VPC architecture with automatic traffic inspection:
 
+![Reference architecture for streaming security solution.](/docs/traffic_flow_steps.png)
+
 ### Stream Processing VPC (10.0.0.0/16)
 - **MediaConnect** - Receives SRT video streams securely
 - **MediaLive** - Processes and distributes streams across multiple AZs with timecode burn-in
