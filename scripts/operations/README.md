@@ -1,502 +1,730 @@
 # Operations Scripts
 
-Essential operational scripts for managing the Stream Intelligence Blog streaming infrastructure.
+This directory contains operational scripts for managing the Stream Inspection Blog infrastructure with comprehensive AWS resource management, stream generation, and cleanup capabilities.
 
-## 📋 **Scripts Overview**
+## 📋 Script Overview
 
-### **`stream-manager.ts`** - Simple Stream Management Utility
+| Script | Purpose | Key Features |
+|--------|---------|--------------|
+| `stream-manager.ts` | Stream lifecycle management | GWLB ASG + MediaConnect + MediaLive orchestration |
+| `test-stream.ts` | Professional test stream generation | SMPTE bars + LTC audio + x264 encoding |
+| `cleanup-residual.sh` | Comprehensive resource cleanup | Dry-run mode + 10+ AWS service coverage |
+| `verify-cleanup.sh` | Cleanup verification | Exit codes + verbose reporting |
+| `download-keypair.ts` | EC2 key pair management | SSM Parameter Store integration |
 
-**Purpose**: Basic lifecycle management for MediaConnect flows and MediaLive channels.
+## 🎬 Stream Management
 
-**Features**:
-- ✅ **Start Operation**: Starts MediaConnect flows first, then MediaLive channels
-- ✅ **Stop Operation**: Stops MediaLive channels first, then MediaConnect flows
-- ✅ **Status Check**: Shows current status of all streaming resources
-- ✅ **Restart Operation**: Complete restart with proper sequencing
-- ✅ **Simple Error Handling**: Basic error handling with clear messages
-- ✅ **Resource Discovery**: Automatically finds resources from CloudFormation stack
-- ✅ **TypeScript**: Type-safe implementation with simple interfaces
+### stream-manager.ts
+**Enterprise-grade stream lifecycle management** with proper resource sequencing and health monitoring.
 
-**Usage**:
+**Architecture Integration:**
+- **Gateway Load Balancer**: Auto Scaling Group management (scale up/down)
+- **MediaConnect**: Flow lifecycle (start/stop with health checks)
+- **MediaLive**: Channel and input management (proper state transitions)
+- **CloudFormation**: Automatic resource discovery from stack outputs
+
+**Features:**
+- ✅ **Proper Sequencing**: GWLB ASG → MediaConnect flows → MediaLive channels
+- ✅ **Health Monitoring**: Waits for GWLB targets to be healthy before proceeding
+- ✅ **Resource Discovery**: Automatically finds all resources from CloudFormation stack
+- ✅ **Status Reporting**: Real-time status with colored output and progress indicators
+- ✅ **Error Handling**: Robust error handling with detailed messages and graceful degradation
+- ✅ **TypeScript**: Type-safe implementation with comprehensive interfaces
+
+**Usage:**
 ```bash
-# Via npm scripts (recommended)
-npm run stream:start    # Start all streaming resources
-npm run stream:stop     # Stop all streaming resources
-npm run stream:status   # Check status of all resources
-npm run stream:restart  # Restart all streaming resources
+# Recommended: Use npm scripts
+npm run stream:start    # Scale GWLB ASG → start MediaConnect flows → start MediaLive channels
+npm run stream:stop     # Stop MediaLive channels → stop MediaConnect flows → scale down GWLB ASG
+npm run stream:status   # Check status of GWLB targets, flows, and channels
+npm run stream:restart  # Complete restart with proper sequencing
 
-# Direct usage with ts-node
-npx ts-node scripts/operations/stream-manager.ts start
+# Direct usage with custom parameters
+npx ts-node scripts/operations/stream-manager.ts start --stack-name MyStack --region us-west-2
 npx ts-node scripts/operations/stream-manager.ts stop
 npx ts-node scripts/operations/stream-manager.ts status
-npx ts-node scripts/operations/stream-manager.ts restart
-
-# With custom parameters
-npx ts-node scripts/operations/stream-manager.ts start --stack-name MyStack --region us-west-2
 ```
 
-**Parameters**:
+**Parameters:**
 - `--stack-name`: CloudFormation stack name (default: StreamInspectionBlogStack)
 - `--region`: AWS region (default: us-west-2)
 
-**Exit Codes**:
+**Exit Codes:**
 - `0`: Success
 - `1`: Error occurred
 
-### **`test-stream.ts`** - Broadcast Test Stream Generator
+### stream-control.sh
+**Shell wrapper** for stream-manager.ts with simplified command-line interface for automation.
 
-**Purpose**: Generates continuous SMPTE color bars with 1kHz audio tone for broadcast testing.
-
-**Features**:
-- ✅ **Broadcast Quality**: 1080p resolution at 8Mbps bitrate
-- ✅ **Continuous Operation**: Runs until manually stopped (Ctrl+C)
-- ✅ **SMPTE Color Bars**: Standard broadcast test pattern
-- ✅ **1kHz Audio Tone**: Pure sine wave audio
-- ✅ **SRT Streaming**: Direct streaming to MediaConnect
-- ✅ **TypeScript**: Type-safe implementation with simple interfaces
-
-**Usage**:
+**Usage:**
 ```bash
-# Start continuous broadcast stream with HLS playback (default)
-npm run stream:generate:broadcast
-
-# Direct TypeScript usage
-npx ts-node scripts/operations/test-stream.ts                    # Continuous broadcast
-npx ts-node scripts/operations/test-stream.ts --duration 300     # Run for 5 minutes
-
-# Shell wrapper (recommended)
-./scripts/operations/run-test-stream.sh                   # Stream with HLS playback (default)
-./scripts/operations/run-test-stream.sh --no-play         # Stream without playback
-./scripts/operations/run-test-stream.sh --duration 300    # Stream for 5 minutes with playback
-./scripts/operations/run-test-stream.sh --verbose         # Verbose output with playback
+./scripts/operations/stream-control.sh start [stack-name] [region]
+./scripts/operations/stream-control.sh stop [stack-name] [region]
+./scripts/operations/stream-control.sh status [stack-name] [region]
 ```
 
-**Parameters**:
-- `--stack-name`: CloudFormation stack name (default: StreamInspectionBlogStack)
-- `--region`: AWS region (default: us-west-2)
-- `--duration`: Stream duration in seconds (default: continuous)
-- `--no-play`: Disable HLS output playback (playback is enabled by default)
-- `--verbose`: Show FFmpeg output
+## 🎥 Test Stream Generation
 
-**What it does**:
-1. **Gets URLs**: Retrieves SRT input URL and HLS playback URL from stack outputs
-2. **Generates Stream**: Creates SMPTE color bars with 1kHz audio
-3. **Streams to MediaConnect**: Sends stream via SRT to your deployed infrastructure
-4. **Plays HLS Output**: Opens ffplay window showing the HLS output stream (default behavior)
+### test-stream.ts
+**Professional broadcast test stream generator** with SMPTE standards compliance and LTC audio timecode.
 
-**Default Configuration**:
-- **Resolution**: 1080p (broadcast quality)
-- **Bitrate**: 8000 kbps
-- **Audio**: 1kHz tone
-- **Mode**: Continuous until stopped (Ctrl+C)
-- **Playback**: HLS output playback enabled by default
+**Broadcast Features:**
+- 🎨 **SMPTE Color Bars**: Industry-standard test pattern
+- 🎵 **LTC Audio Channel**: Linear Timecode audio signal (1200Hz carrier)
+- 📺 **x264 Professional Encoding**: Broadcast-standard settings with constant frame rate
+- ⏰ **Visual Timecode Overlay**: System timestamp for monitoring
+- 🔊 **Audio Monitoring**: 1kHz sine tone mixed with LTC signal
+- 📡 **SRT Transport**: Reliable streaming over SRT protocol
 
-**Stream Playback**:
-- Use `--play` flag to open a real-time playback window with ffplay
-- Only available in test mode (automatically enables test mode)
-- Requires ffplay to be installed (comes with FFmpeg)
-- Shows live SMPTE color bars and plays 1kHz audio tone
+**Technical Specifications:**
+- **Video**: SMPTE color bars, 720p/1080p/4K, x264 encoding
+- **Audio**: Stereo mix (1kHz tone + 1200Hz LTC signal)
+- **Timecode**: System time embedded as SMPTE timecode
+- **Transport**: SRT with automatic stack resource discovery
+- **Monitoring**: Optional HLS playback with ffplay
 
-**Stopping the Stream**:
-- Press `Ctrl+C` to gracefully stop the continuous stream
-- The utility will cleanly terminate FFmpeg and ffplay processes
-
-**Troubleshooting**:
-- Exit code 234: Connection refused - try `--test-mode` to test locally
-- Missing FFmpeg: Install FFmpeg with SRT support
-- Missing ffplay: Install complete FFmpeg package
-
-### **`download-keypair.ts`** - EC2 Key Pair Download Utility
-
-**Purpose**: Downloads EC2 key pair private keys from AWS Systems Manager Parameter Store for SSH access to instances.
-
-**Features**:
-- ✅ **Stack Integration**: Automatically finds key pairs from CloudFormation stack
-- ✅ **Parameter Store**: Downloads private keys from AWS Systems Manager
-- ✅ **Proper Permissions**: Sets SSH-compatible file permissions (600)
-- ✅ **Directory Management**: Creates output directory if needed
-- ✅ **Selective Download**: Download specific key pairs or all from stack
-- ✅ **Error Handling**: Graceful handling of missing or inaccessible keys
-- ✅ **TypeScript**: Type-safe implementation with simple interfaces
-
-**Usage**:
+**Usage:**
 ```bash
-# Via npm scripts (recommended)
-npm run keypair:download                    # Download all keys from default stack
-npm run keypair:get -- --key-name my-key   # Download specific key pair
+# Generate continuous test stream with LTC audio
+npm run stream:generate
+npx ts-node scripts/operations/test-stream.ts
 
-# Direct usage
-npx ts-node scripts/operations/download-keypair.ts                    # Download all keys
-npx ts-node scripts/operations/download-keypair.ts --key-name my-key  # Specific key
-npx ts-node scripts/operations/download-keypair.ts --output-dir ~/.ssh # Custom directory
-npx ts-node scripts/operations/download-keypair.ts --stack-name MyStack --region us-east-1
+# Generate 5-minute test stream
+npx ts-node scripts/operations/test-stream.ts --duration 300
 
-# Shell wrapper
-./scripts/operations/download-keypair.sh                       # Download all keys
-./scripts/operations/download-keypair.sh --key-name my-key     # Specific key
-./scripts/operations/download-keypair.sh --output-dir ~/.ssh   # Custom directory
+# Generate stream without playback monitoring
+npx ts-node scripts/operations/test-stream.ts --no-play
+
+# Custom resolution and bitrate
+npx ts-node scripts/operations/test-stream.ts --resolution 720p --bitrate 4000
+
+# Help and all options
+npx ts-node scripts/operations/test-stream.ts --help
 ```
 
-**Parameters**:
-- `--stack-name`: CloudFormation stack name (default: StreamInspectionBlogStack)
-- `--region`: AWS region (default: us-west-2)
-- `--output-dir`: Output directory for key files (default: ./keys)
-- `--key-name`: Specific key pair name to download (optional)
-- `--help`: Show usage information
+**Options:**
+- `--stack-name NAME`: CloudFormation stack name (default: StreamInspectionBlogStack)
+- `--region REGION`: AWS region (default: from AWS config)
+- `--resolution RES`: Video resolution: 720p, 1080p, 4k (default: 1080p)
+- `--bitrate KBPS`: Video bitrate in kbps (default: 8000)
+- `--duration SECONDS`: Stream duration in seconds (default: continuous)
+- `--no-play`: Disable automatic playback with ffplay
 
-**Output**:
-- **Key Files**: Saved as `{key-name}.pem` with 600 permissions
-- **Directory**: Creates output directory if it doesn't exist
-- **Summary**: Reports successful and failed downloads
+**LTC Audio Technical Details:**
+- **Frequency**: 1200Hz carrier (within SMPTE LTC range)
+- **Volume**: 30% to avoid overpowering main audio
+- **Sample Rate**: 48kHz (broadcast standard)
+- **Encoding**: Mixed with main audio in stereo output
+- **Compatibility**: Works with professional timecode readers
 
-**Important Notes**:
-- Only key pairs created through AWS (after 2021) store private keys in Parameter Store
-- Imported or externally created key pairs will not have downloadable private keys
-- The script automatically sets proper SSH permissions (600) on downloaded keys
-- Keys are saved in PEM format compatible with SSH clients
+## 🧹 Infrastructure Cleanup
 
-**SSH Usage**:
+### cleanup-residual.sh
+**Comprehensive cleanup script** for removing AWS resources that may not be automatically cleaned up by CDK destroy.
+
+**Safety Features:**
+- 🔍 **Dry-run mode** to preview deletions without executing
+- ⚠️ **Interactive confirmation** prompts for destructive operations
+- 🎯 **Dependency ordering** for safe resource deletion
+- 🎨 **Colored output** with clear progress indicators
+- 🛡️ **Error handling** that continues processing if individual resources fail
+
+**Resources Cleaned (10+ AWS Services):**
+- **Media Services**: MediaConnect flows, MediaLive channels/inputs, MediaPackage channels/endpoints
+- **Compute**: EC2 instances, Auto Scaling Groups, Launch Templates, Key Pairs
+- **Networking**: Gateway Load Balancers, Target Groups, VPC Endpoints, Security Groups
+- **Storage**: S3 buckets (including GWLB access logs)
+- **Monitoring**: CloudWatch Log Groups
+- **All resources**: Tagged with 'StreamInspection' or matching naming patterns
+
+**Usage:**
 ```bash
-# Connect to EC2 instance using downloaded key
-ssh -i keys/my-keypair.pem ec2-user@<instance-ip>
+# Interactive cleanup with confirmation
+npm run cleanup:residual
+./scripts/operations/cleanup-residual.sh
 
-# Or if saved to ~/.ssh directory
-ssh -i ~/.ssh/my-keypair.pem ec2-user@<instance-ip>
+# Safe preview mode (recommended first step)
+./scripts/operations/cleanup-residual.sh --dry-run
+
+# Clean up specific stack and region
+./scripts/operations/cleanup-residual.sh --stack-name MyStack --region us-east-1
+
+# Environment variable configuration
+STACK_NAME=MyStack DRY_RUN=true ./scripts/operations/cleanup-residual.sh
 ```
 
-**Exit Codes**:
-- `0`: Success
-- `1`: General error
-- `2`: AWS configuration error
-- `3`: Key pairs not found
-- `130`: Operation cancelled by user
+**Options:**
+- `--dry-run`: Show what would be deleted without actually deleting
+- `--stack-name NAME`: Specify stack name (default: StreamInspectionBlogStack)
+- `--region REGION`: Specify AWS region (default: from AWS config)
+- `--help`: Show detailed help message
 
-### **`download-keypair.sh`** - Key Pair Download Shell Wrapper
+**Cleanup Sequence:**
+1. MediaConnect flows (stop → delete)
+2. MediaLive resources (stop channels → delete channels → delete inputs)
+3. MediaPackage resources (delete endpoints → delete channels)
+4. Auto Scaling Groups (scale to 0 → delete)
+5. Launch Templates and Load Balancers
+6. Security Groups and Key Pairs
+7. VPC Endpoints
+8. CloudWatch Log Groups
+9. S3 Buckets (empty → delete)
 
-**Purpose**: Simple bash interface for EC2 key pair download with prerequisite checking.
+### verify-cleanup.sh
+**Verification script** to ensure all resources have been properly cleaned up after stack destruction.
 
-**Features**:
-- ✅ **Prerequisites Check**: Validates Node.js and AWS CLI availability
-- ✅ **Parameter Forwarding**: Passes all parameters to Node.js script
-- ✅ **Error Handling**: Proper exit code handling and error messages
-- ✅ **Help System**: Built-in help and usage information
+**Verification Features:**
+- 📊 **Comprehensive checking** across all AWS services used by the stack
+- 🔍 **Verbose mode** for detailed resource information
+- 🚦 **Exit codes** for automation (0 = clean, >0 = issues found)
+- 📈 **Resource counting** and summary reporting
+- 💡 **Actionable recommendations** for remaining resources
 
-**Usage**:
+**Resources Verified (10+ AWS Services):**
+- **CloudFormation**: Main and nested stacks
+- **Media Services**: MediaConnect, MediaLive, MediaPackage
+- **Compute**: EC2 instances, ASGs, Launch Templates, Key Pairs
+- **Networking**: Load Balancers, Target Groups, VPCs, Security Groups, VPC Endpoints
+- **Serverless**: Lambda functions
+- **Monitoring**: CloudWatch Log Groups
+- **Storage**: S3 Buckets
+
+**Usage:**
 ```bash
-# Via npm script (recommended)
-npm run keypair:download
+# Basic verification
+npm run cleanup:verify
+./scripts/operations/verify-cleanup.sh
 
-# Direct usage
-./scripts/operations/download-keypair.sh                       # Download all keys
-./scripts/operations/download-keypair.sh --key-name my-key     # Specific key
-./scripts/operations/download-keypair.sh --output-dir ~/.ssh   # Custom directory
-./scripts/operations/download-keypair.sh --help               # Show help
-```
+# Detailed verification with resource information
+./scripts/operations/verify-cleanup.sh --verbose
 
-**Parameters**:
-- All parameters are forwarded to the Node.js script
-- `--help`: Show usage information
+# Verify specific stack
+./scripts/operations/verify-cleanup.sh --stack-name MyStack --region us-east-1
 
-
-**Purpose**: Simple bash interface for continuous broadcast test stream generation.
-
-**Features**:
-- ✅ **Broadcast Quality**: 1080p at 8Mbps continuous streaming
-- ✅ **Prerequisites Check**: Validates FFmpeg, Node.js, and AWS CLI
-- ✅ **Graceful Shutdown**: Handles Ctrl+C for clean termination
-- ✅ **Test Mode Support**: Local file output for testing
-- ✅ **Stream Playback**: Real-time monitoring with ffplay
-
-**Usage**:
-```bash
-# Via npm script (recommended)
-npm run stream:generate:broadcast
-
-# Direct usage
-./scripts/operations/run-test-stream.sh                   # Start continuous stream
-./scripts/operations/run-test-stream.sh --test-mode       # Test locally
-./scripts/operations/run-test-stream.sh --test-mode --play # Test and play
-./scripts/operations/run-test-stream.sh --verbose         # Show FFmpeg output
-```
-
-**Parameters**:
-- `--stack-name`: CloudFormation stack name
-- `--region`: AWS region
-- `--test-mode`: Output to file instead of SRT
-- `--play`: Play output stream with ffplay (test mode only)
-- `--verbose`: Show FFmpeg output
-
-### **`stream-control.sh`** - Shell Wrapper
-
-**Purpose**: Bash interface for stream-manager.js with simplified usage.
-
-**Features**:
-- ✅ **Simple Interface**: Easy-to-use bash commands
-- ✅ **Parameter Passing**: Forwards all parameters to stream-manager.js
-- ✅ **Error Handling**: Proper exit code handling
-- ✅ **Help System**: Built-in help and usage information
-
-**Usage**:
-```bash
-# Via npm script
-npm run stream:control start
-
-# Direct usage
-./scripts/operations/stream-control.sh start
-./scripts/operations/stream-control.sh stop
-./scripts/operations/stream-control.sh status
-./scripts/operations/stream-control.sh restart
-./scripts/operations/stream-control.sh help
-
-# With parameters
-./scripts/operations/stream-control.sh start MyStack us-west-2
-```
-
-**Parameters**:
-- `start|stop|status|restart`: Operation to perform
-- `[stack-name]`: Optional stack name
-- `[region]`: Optional AWS region
-- `help`: Show usage information
-
-## 🔧 **Prerequisites**
-
-### **System Requirements**
-- **Node.js**: Version 18.x or later
-- **AWS CLI**: Version 2.x configured with credentials
-- **FFmpeg**: Version 4.x or later with SRT support (for test stream generation)
-- **Bash**: For shell script execution (Linux/macOS/WSL)
-- **Conda**: For environment management (recommended)
-
-### **Environment Setup**
-The project includes a conda environment with all dependencies:
-
-```bash
-# Create and activate conda environment
-conda env create -f environment.yml
-conda activate stream-inspection
-
-# Verify FFmpeg installation
-npm run verify:ffmpeg
-
-# Or run directly
-./scripts/utilities/verify-ffmpeg.sh
-```
-
-### **FFmpeg Installation with SRT Support**
-
-**macOS (Homebrew)**:
-```bash
-# Install FFmpeg with SRT support
-brew install ffmpeg
-
-# Verify SRT support
-ffmpeg -protocols 2>/dev/null | grep srt
-```
-
-**Ubuntu/Debian**:
-```bash
-# Install FFmpeg
-sudo apt update
-sudo apt install ffmpeg
-
-# Verify SRT support (may need to compile from source if not included)
-ffmpeg -protocols 2>/dev/null | grep srt
-```
-
-**Verify Required Components**:
-```bash
-# Check for required filters and encoders
-ffmpeg -filters 2>/dev/null | grep -E "(smptebars|sine|drawtext)"
-ffmpeg -encoders 2>/dev/null | grep -E "(libx264|aac)"
-```
-
-### **AWS Permissions**
-The scripts require the following IAM permissions:
-
-#### **MediaConnect Permissions**
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "mediaconnect:DescribeFlow",
-        "mediaconnect:ListFlows",
-        "mediaconnect:StartFlow",
-        "mediaconnect:StopFlow"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-#### **MediaLive Permissions**
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "medialive:DescribeChannel",
-        "medialive:ListChannels",
-        "medialive:StartChannel",
-        "medialive:StopChannel"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-#### **CloudFormation Permissions**
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "cloudformation:DescribeStacks",
-        "cloudformation:ListStackResources"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
-## 📊 **Operation Details**
-
-### **Start Operation Sequence**
-1. **Discovery**: Find MediaConnect flows and MediaLive channels from stack
-2. **MediaConnect**: Start all flows and wait for ACTIVE state
-3. **MediaLive**: Start all channels and wait for RUNNING state
-4. **Status**: Display final status
-
-### **Stop Operation Sequence**
-1. **Discovery**: Find MediaConnect flows and MediaLive channels from stack
-2. **MediaLive**: Stop all channels and wait for IDLE state
-3. **MediaConnect**: Stop all flows and wait for STANDBY state
-4. **Status**: Display final status
-
-### **Error Handling**
-- **Already Running**: Skips start if resource is already active
-- **Already Stopped**: Skips stop if resource is already idle
-- **Timeout**: 5-minute timeout for state transitions
-- **Clear Messages**: Simple, color-coded status messages
-
-### **Stop Operation Sequence**
-1. **Discovery**: Find all running MediaConnect flows and MediaLive channels
-2. **MediaLive**: Stop all channels and wait for IDLE state
-3. **MediaConnect**: Stop all flows and wait for STANDBY state
-4. **Verification**: Confirm all resources are stopped
-5. **Reporting**: Display final status and summary
-
-### **Status Check Details**
-- **Resource Discovery**: Automatically finds resources from CloudFormation stack
-- **Real-time Status**: Queries current state of all resources
-- **Health Indicators**: Color-coded status display (green=good, red=error, yellow=transitioning)
-- **Summary Report**: Overview of all resource states
-
-## 🚨 **Error Handling**
-
-### **Common Errors and Solutions**
-
-#### **AWS Configuration Errors**
-```bash
-Error: AWS credentials not configured
-Solution: Run 'aws configure' or set AWS environment variables
-```
-
-#### **Permission Errors**
-```bash
-Error: Access denied for MediaConnect operations
-Solution: Ensure IAM user/role has required MediaConnect permissions
-```
-
-#### **Resource Not Found**
-```bash
-Error: No MediaConnect flows found in stack
-Solution: Verify stack name and ensure resources are deployed
-```
-
-#### **Timeout Errors**
-```bash
-Error: Operation timed out waiting for resource state change
-Solution: Increase timeout value or check resource health
-```
-
-### **Troubleshooting Steps**
-1. **Verify AWS Configuration**: `aws sts get-caller-identity`
-2. **Check Stack Exists**: `aws cloudformation describe-stacks --stack-name YourStack`
-3. **Verify Permissions**: Test individual AWS CLI commands
-4. **Check Resource States**: Use AWS Console to verify resource status
-5. **Review Logs**: Check script output for detailed error messages
-
-## 📈 **Performance and Monitoring**
-
-### **Operation Timing**
-- **Start Operation**: Typically 2-5 minutes depending on resource count
-- **Stop Operation**: Typically 1-3 minutes depending on resource count
-- **Status Check**: Usually completes in 10-30 seconds
-- **Restart Operation**: Combined start + stop timing
-
-### **Resource Limits**
-- **Maximum Flows**: No hard limit, but performance may degrade with >10 flows
-- **Maximum Channels**: No hard limit, but performance may degrade with >5 channels
-- **Concurrent Operations**: Scripts handle resources sequentially for reliability
-
-### **Monitoring Integration**
-- **CloudWatch Logs**: All operations logged to CloudWatch (if configured)
-- **AWS CloudTrail**: API calls tracked for audit purposes
-- **Console Output**: Real-time progress and status updates
-- **Exit Codes**: Proper exit codes for integration with monitoring systems
-
-## 🔄 **Integration Examples**
-
-### **CI/CD Pipeline Integration**
-```bash
-#!/bin/bash
-# Deploy and start streaming infrastructure
-npx cdk deploy --require-approval never
-if [ $? -eq 0 ]; then
-    npm run stream:start
-    if [ $? -eq 0 ]; then
-        echo "Deployment and startup successful"
-    else
-        echo "Startup failed"
-        exit 1
-    fi
+# Use in automation scripts
+if ./scripts/operations/verify-cleanup.sh; then
+    echo "✅ All resources cleaned up successfully"
 else
-    echo "Deployment failed"
+    echo "⚠️ Issues found - cleanup incomplete"
     exit 1
 fi
 ```
 
-### **Monitoring Script Integration**
-```bash
-#!/bin/bash
-# Check stream status and alert if issues
-npm run stream:status > /tmp/stream-status.log
-if [ $? -ne 0 ]; then
-    # Send alert to monitoring system
-    curl -X POST "https://monitoring.example.com/alert" \
-         -d "Stream infrastructure has issues - check logs"
-fi
+**Options:**
+- `--verbose`: Show detailed information about found resources
+- `--stack-name NAME`: Specify stack name (default: StreamInspectionBlogStack)
+- `--region REGION`: Specify AWS region (default: from AWS config)
+- `--help`: Show detailed help message
+
+**Exit Codes:**
+- `0`: All resources cleaned up successfully
+- `>0`: Number of issues found (resources still exist)
+
+**Sample Output:**
+```
+🔍 Stream Inspection Stack - Cleanup Verification
+📍 Stack: StreamInspectionBlogStack
+📍 Region: us-west-2
+
+🚀 Starting comprehensive cleanup verification...
+
+✅ Main stack successfully deleted
+✅ No MediaConnect flows remaining
+✅ No MediaLive channels remaining
+⚠️  CloudWatch log groups still exist: /aws/lambda/StreamInspection-CustomResource
+
+📊 Verification Summary:
+   Resources checked: 15
+⚠️  Cleanup verification found 1 potential issues
+💡 Consider running 'npm run cleanup:residual' to clean up remaining resources
 ```
 
-### **Scheduled Operations**
+## 🔑 Key Management
+
+### download-keypair.ts / download-keypair.sh
+**Secure key pair management** utilities for downloading EC2 key pairs from AWS Systems Manager Parameter Store.
+
+**Security Features:**
+- 🔐 **SSM Parameter Store**: Secure storage and retrieval
+- 🔒 **Proper file permissions** (600) for SSH keys
+- 🎯 **Automatic discovery** from CloudFormation stack
+- 📁 **Custom output directories** support
+- 📦 **Batch download** of multiple key pairs
+
+**Usage:**
 ```bash
-# Crontab entry for daily restart (if needed)
-# 0 2 * * * cd /path/to/project && npm run stream:restart >> /var/log/stream-restart.log 2>&1
+# Download all key pairs from stack
+npm run keypair:download
+npx ts-node scripts/operations/download-keypair.ts
+
+# Download to specific directory (e.g., ~/.ssh)
+./scripts/operations/download-keypair.sh --output-dir ~/.ssh
+
+# Download specific key pair
+./scripts/operations/download-keypair.sh --key-name my-key
 ```
+
+## 🏗️ Best Practices
+
+### Resource Management Workflow
+
+**1. Pre-Deployment Verification**
+```bash
+# Verify no existing resources that could conflict
+npm run cleanup:verify
+```
+
+**2. Development Workflow**
+```bash
+# Start streaming infrastructure for testing
+npm run stream:start
+
+# Generate test streams with LTC audio
+npm run stream:generate
+
+# Stop resources when done (saves costs)
+npm run stream:stop
+```
+
+**3. Pre-Destruction Workflow (CRITICAL)**
+```bash
+# MUST stop all streaming resources before destroying stack
+npm run stream:stop
+
+# Verify all resources are stopped
+npm run stream:status
+
+# Only then destroy the stack
+npx cdk destroy StreamInspectionBlogStack
+```
+
+**4. Post-Destruction Cleanup**
+```bash
+# Preview what residual resources exist
+./scripts/operations/cleanup-residual.sh --dry-run
+
+# Clean up any residual resources
+npm run cleanup:residual
+
+# Verify complete cleanup
+npm run cleanup:verify
+```
+
+### Environment Variables
+
+All scripts support these environment variables for customization:
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `STACK_NAME` | CloudFormation stack name | StreamInspectionBlogStack | MyCustomStack |
+| `AWS_DEFAULT_REGION` | AWS region for operations | us-west-2 | us-east-1 |
+| `VERBOSE` | Enable verbose output | false | true |
+| `DRY_RUN` | Enable dry-run mode for cleanup | false | true |
+
+**Usage:**
+```bash
+# Set environment variables
+export STACK_NAME=MyCustomStack
+export AWS_DEFAULT_REGION=us-east-1
+export VERBOSE=true
+
+# Or use inline
+STACK_NAME=MyStack VERBOSE=true npm run stream:status
+```
+
+### Error Handling & Safety
+
+All scripts implement enterprise-grade error handling:
+
+- **🛡️ Graceful failures**: Scripts continue processing other resources if one fails
+- **📝 Clear error messages**: Detailed information about what went wrong and how to fix it
+- **🚦 Exit codes**: Proper exit codes for automation and CI/CD integration
+- **🔍 Rollback safety**: Dry-run modes to preview changes before execution
+- **⚠️ Confirmation prompts**: Interactive confirmation for destructive operations
+
+### Security Considerations
+
+- **🔐 Least privilege**: Scripts only request necessary AWS permissions
+- **🚫 No hardcoded credentials**: Uses AWS CLI configuration and IAM roles
+- **🛡️ Safe defaults**: Conservative settings to prevent accidental deletions
+- **📋 Confirmation prompts**: Interactive confirmation for destructive operations
+- **📊 Audit logging**: All operations logged to CloudWatch where applicable
+
+## 🔧 Troubleshooting
+
+### Common Issues & Solutions
+
+**1. AWS CLI not configured**
+```bash
+# Configure AWS CLI
+aws configure
+
+# Or set region via environment variable
+export AWS_DEFAULT_REGION=us-west-2
+```
+
+**2. Permission denied on scripts**
+```bash
+# Make scripts executable
+chmod +x scripts/operations/*.sh
+```
+
+**3. Resources still exist after cleanup**
+```bash
+# Use verbose mode to see details
+./scripts/operations/verify-cleanup.sh --verbose
+
+# Preview what would be cleaned up
+./scripts/operations/cleanup-residual.sh --dry-run
+
+# Clean up residual resources
+./scripts/operations/cleanup-residual.sh
+```
+
+**4. Stream resources won't start**
+```bash
+# Check GWLB Auto Scaling Group status first
+npm run stream:status
+
+# Ensure proper sequencing with restart
+npm run stream:stop
+sleep 30
+npm run stream:start
+```
+
+**5. FFmpeg SRT protocol not supported**
+```bash
+# Verify FFmpeg has SRT support
+ffmpeg -protocols | grep srt
+
+# Install FFmpeg with SRT support (macOS)
+brew install ffmpeg
+
+# See docs/FFMPEG_INSTALLATION.md for other platforms
+```
+
+### Getting Help
+
+Each script includes comprehensive help documentation:
+
+```bash
+# Stream management help
+npx ts-node scripts/operations/stream-manager.ts --help
+
+# Test stream generation help
+npx ts-node scripts/operations/test-stream.ts --help
+
+# Cleanup scripts help
+./scripts/operations/cleanup-residual.sh --help
+./scripts/operations/verify-cleanup.sh --help
+```
+
+### Debug Mode
+
+Enable verbose output for troubleshooting:
+
+```bash
+# Enable verbose mode for all scripts
+export VERBOSE=true
+
+# Or use inline for specific commands
+VERBOSE=true npm run stream:status
+VERBOSE=true ./scripts/operations/verify-cleanup.sh
+```
+
+## 📚 Additional Resources
+
+- **Main Documentation**: [../../README.md](../../README.md)
+- **Architecture Guide**: [../../ARCHITECTURE.md](../../ARCHITECTURE.md)
+- **FFmpeg Installation**: [../../docs/FFMPEG_INSTALLATION.md](../../docs/FFMPEG_INSTALLATION.md)
+- **Cost Estimation**: [../../docs/COST_ESTIMATION.md](../../docs/COST_ESTIMATION.md)
+
+## 🤝 Contributing
+
+When contributing to operations scripts:
+
+1. **Follow TypeScript best practices** for .ts files
+2. **Add comprehensive error handling** for all AWS API calls
+3. **Include help text** and parameter validation
+4. **Test with dry-run modes** where applicable
+5. **Update this README** with new features
+6. **Add unit tests** for new functionality
+7. **Follow security best practices** (no hardcoded credentials, least privilege)
 
 ---
 
-**Last Updated**: 2025-07-04  
-**Scripts Version**: 2.0  
-**Compatibility**: Node.js 18+, AWS CLI 2.x  
-**Maintenance**: Core operational scripts - handle with care
+**⚠️ Important**: Always run `npm run stream:stop` before destroying the CDK stack to avoid orphaned resources and unexpected charges.
+- SMPTE color bars test pattern
+- x264 professional encoding with broadcast-standard settings
+- Visual timecode overlays for verification
+- LTC (Linear Timecode) audio channel with SMPTE timecode signal
+- System timestamp for monitoring
+- Automatic stack resource discovery
+- HLS playback monitoring with ffplay
+
+**Usage:**
+```bash
+# Generate continuous test stream
+npm run stream:generate
+npx ts-node scripts/operations/test-stream.ts
+
+# Generate 5-minute test stream
+npx ts-node scripts/operations/test-stream.ts --duration 300
+
+# Generate stream without playback monitoring
+npx ts-node scripts/operations/test-stream.ts --no-play
+
+# Custom resolution and bitrate
+npx ts-node scripts/operations/test-stream.ts --resolution 720p --bitrate 4000
+
+# Help and options
+npx ts-node scripts/operations/test-stream.ts --help
+```
+
+**Options:**
+- `--stack-name NAME`: CloudFormation stack name (default: StreamInspectionBlogStack)
+- `--region REGION`: AWS region (default: from AWS config)
+- `--resolution RES`: Video resolution: 720p, 1080p, 4k (default: 1080p)
+- `--bitrate KBPS`: Video bitrate in kbps (default: 8000)
+- `--duration SECONDS`: Stream duration in seconds (default: continuous)
+- `--no-play`: Disable automatic playback with ffplay
+
+## Infrastructure Cleanup
+
+### cleanup-residual.sh
+Comprehensive cleanup script for removing AWS resources that may not be automatically cleaned up by CDK destroy.
+
+**Features:**
+- Dry-run mode to preview what would be deleted
+- Comprehensive resource coverage (MediaConnect, MediaLive, MediaPackage, EC2, Load Balancers, etc.)
+- Proper dependency ordering for safe deletion
+- Colored output with progress indicators
+- Error handling and graceful failures
+- Command-line options for customization
+
+**Resources Cleaned:**
+- MediaConnect flows
+- MediaLive channels and inputs
+- MediaPackage channels and origin endpoints
+- Auto Scaling Groups and Launch Templates
+- Gateway Load Balancers and Target Groups
+- Security Groups and Key Pairs
+- VPC Endpoints
+- CloudWatch Log Groups
+- S3 Buckets (including GWLB access logs)
+
+**Usage:**
+```bash
+# Clean up residual resources (interactive)
+npm run cleanup:residual
+./scripts/operations/cleanup-residual.sh
+
+# Dry run to see what would be deleted
+./scripts/operations/cleanup-residual.sh --dry-run
+
+# Clean up specific stack
+./scripts/operations/cleanup-residual.sh --stack-name MyStack --region us-east-1
+
+# Environment variable configuration
+STACK_NAME=MyStack DRY_RUN=true ./scripts/operations/cleanup-residual.sh
+```
+
+**Options:**
+- `--dry-run`: Show what would be deleted without actually deleting
+- `--stack-name NAME`: Specify stack name (default: StreamInspectionBlogStack)
+- `--region REGION`: Specify AWS region (default: from AWS config)
+- `--help`: Show help message
+
+### verify-cleanup.sh
+Verification script to ensure all resources have been properly cleaned up after stack destruction.
+
+**Features:**
+- Comprehensive resource verification across all AWS services
+- Verbose mode for detailed resource information
+- Exit codes for automation (0 = clean, >0 = issues found)
+- Colored output with clear status indicators
+- Resource counting and summary reporting
+- Actionable recommendations for remaining resources
+
+**Resources Verified:**
+- CloudFormation stacks (main and nested)
+- MediaConnect flows
+- MediaLive channels and inputs
+- MediaPackage channels and origin endpoints
+- EC2 instances, Auto Scaling Groups, Launch Templates, Key Pairs
+- Gateway Load Balancers and Target Groups
+- VPCs, Security Groups, VPC Endpoints
+- Lambda functions
+- CloudWatch Log Groups
+- S3 Buckets
+
+**Usage:**
+```bash
+# Verify cleanup completion
+npm run cleanup:verify
+./scripts/operations/verify-cleanup.sh
+
+# Verbose output with detailed resource information
+./scripts/operations/verify-cleanup.sh --verbose
+
+# Verify specific stack
+./scripts/operations/verify-cleanup.sh --stack-name MyStack --region us-east-1
+
+# Use in automation (check exit code)
+if ./scripts/operations/verify-cleanup.sh; then
+    echo "Cleanup verified successfully"
+else
+    echo "Issues found - cleanup incomplete"
+fi
+```
+
+**Options:**
+- `--verbose`: Show detailed information about found resources
+- `--stack-name NAME`: Specify stack name (default: StreamInspectionBlogStack)
+- `--region REGION`: Specify AWS region (default: from AWS config)
+- `--help`: Show help message
+
+**Exit Codes:**
+- `0`: All resources cleaned up successfully
+- `>0`: Number of issues found (resources still exist)
+
+## Key Management
+
+### download-keypair.ts / download-keypair.sh
+Utilities for downloading EC2 key pairs from AWS Systems Manager Parameter Store.
+
+**Features:**
+- Automatic key pair discovery from CloudFormation stack
+- Secure download from SSM Parameter Store
+- Proper file permissions (600) for SSH keys
+- Support for custom output directories
+- Batch download of multiple key pairs
+
+**Usage:**
+```bash
+# Download all key pairs from stack
+npm run keypair:download
+npx ts-node scripts/operations/download-keypair.ts
+
+# Download to specific directory
+./scripts/operations/download-keypair.sh --output-dir ~/.ssh
+
+# Download specific key pair
+./scripts/operations/download-keypair.sh --key-name my-key
+```
+
+## Best Practices
+
+### Resource Management Workflow
+
+1. **Before Deployment:**
+   ```bash
+   # Verify no existing resources
+   npm run cleanup:verify
+   ```
+
+2. **During Development:**
+   ```bash
+   # Start streaming resources for testing
+   npm run stream:start
+   
+   # Generate test streams
+   npm run stream:generate
+   
+   # Stop resources when done
+   npm run stream:stop
+   ```
+
+3. **Before Destruction:**
+   ```bash
+   # CRITICAL: Stop all streaming resources first
+   npm run stream:stop
+   
+   # Verify all resources are stopped
+   npm run stream:status
+   
+   # Then destroy the stack
+   npx cdk destroy
+   ```
+
+4. **After Destruction:**
+   ```bash
+   # Clean up any residual resources
+   npm run cleanup:residual
+   
+   # Verify complete cleanup
+   npm run cleanup:verify
+   ```
+
+### Environment Variables
+
+All scripts support these environment variables:
+
+- `STACK_NAME`: CloudFormation stack name (default: StreamInspectionBlogStack)
+- `AWS_DEFAULT_REGION`: AWS region for operations
+- `VERBOSE`: Enable verbose output (set to 'true')
+- `DRY_RUN`: Enable dry-run mode for cleanup (set to 'true')
+
+### Error Handling
+
+All scripts include comprehensive error handling:
+
+- **Graceful failures**: Scripts continue processing other resources if one fails
+- **Clear error messages**: Detailed information about what went wrong
+- **Exit codes**: Proper exit codes for automation and scripting
+- **Rollback safety**: Dry-run modes to preview changes before execution
+
+### Security Considerations
+
+- **Least privilege**: Scripts only request necessary permissions
+- **No hardcoded credentials**: Uses AWS CLI configuration and IAM roles
+- **Safe defaults**: Conservative settings to prevent accidental deletions
+- **Confirmation prompts**: Interactive confirmation for destructive operations
+- **Audit logging**: All operations logged to CloudWatch where applicable
+
+## Troubleshooting
+
+### Common Issues
+
+1. **AWS CLI not configured:**
+   ```bash
+   aws configure
+   # or
+   export AWS_DEFAULT_REGION=us-west-2
+   ```
+
+2. **Permission denied on scripts:**
+   ```bash
+   chmod +x scripts/operations/*.sh
+   ```
+
+3. **Resources still exist after cleanup:**
+   ```bash
+   # Use verbose mode to see details
+   ./scripts/operations/verify-cleanup.sh --verbose
+   
+   # Try dry-run first
+   ./scripts/operations/cleanup-residual.sh --dry-run
+   ```
+
+4. **Stream resources won't start:**
+   ```bash
+   # Check GWLB Auto Scaling Group first
+   npm run stream:status
+   
+   # Ensure proper sequencing
+   npm run stream:stop
+   npm run stream:start
+   ```
+
+### Getting Help
+
+Each script includes a `--help` option with detailed usage information:
+
+```bash
+./scripts/operations/cleanup-residual.sh --help
+./scripts/operations/verify-cleanup.sh --help
+npx ts-node scripts/operations/test-stream.ts --help
+```
+
+For additional support, check the main project README.md and ARCHITECTURE.md files.

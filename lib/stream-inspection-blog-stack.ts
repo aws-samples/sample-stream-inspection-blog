@@ -190,6 +190,7 @@ export class StreamInspectionBlogStack extends cdk.Stack {
     // =========================================================================
 
     // OTT streaming pipeline with MediaLive and MediaPackage
+    // Includes timecode burn-in overlays on all video outputs
     const ottStreamingConstruct = new OttStreamingConstruct(this, 'OttStreamingConstruct', {
       mediaLiveInputId: distributionConstruct.inputId,
       channelName: cdk.Stack.of(this).stackName,

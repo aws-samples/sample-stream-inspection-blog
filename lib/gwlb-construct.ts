@@ -404,8 +404,8 @@ export class GatewayLoadBalancerConstruct extends Construct {
      * Auto Scaling Group for Security Appliances
      */
     const launchTemplate = new ec2.LaunchTemplate(this, 'SecurityApplianceLT', {
-      instanceType: ec2.InstanceType.of(ec2.InstanceClass.C6IN, ec2.InstanceSize.XLARGE),
-      machineImage: ec2.MachineImage.latestAmazonLinux2(),
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.C7GN, ec2.InstanceSize.LARGE),
+      machineImage: new ec2.AmazonLinuxImage({ generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2, cpuType: ec2.AmazonLinuxCpuType.ARM_64 }),
       securityGroup: securityApplianceSG,
       role: securityApplianceRole,
       userData: userData,
@@ -495,7 +495,7 @@ export class GatewayLoadBalancerConstruct extends Construct {
     const bastionHost = new ec2.Instance(this, 'BastionHost', {
       vpc: vpc,
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-      machineImage: ec2.MachineImage.latestAmazonLinux2(),
+      machineImage: new ec2.AmazonLinuxImage({ generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2}),
       securityGroup: bastionSG,
       keyPair: ec2.KeyPair.fromKeyPairName(this, 'BastionKeyPair', keyPair.keyName!),
       vpcSubnets: {

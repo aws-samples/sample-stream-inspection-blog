@@ -58,7 +58,7 @@ This network inspects all traffic:
 #### Security Appliances
 - **What they are**: EC2 instances running Amazon Linux 2
 - **What they do**: Analyze all streaming traffic for security issues
-- **Instance type**: c6in.xlarge (optimized for network processing)
+- **Instance type**: c7gn.large (optimized for network processing with AWS Graviton3)
 - **Scaling**: Automatically scales from 2 to 4 instances (1-2 per AZ)
 - **Health monitoring**: HTTP health checks on port 80
 - **Note**: Currently configured for basic traffic forwarding; advanced inspection features can be added
@@ -196,7 +196,7 @@ Here's the step-by-step process of how your video streams move through the syste
 ## Cost Considerations
 
 ### Main Cost Components
-- **EC2 instances**: Security appliances (c6in.xlarge)
+- **EC2 instances**: Security appliances (c7gn.large)
 - **MediaConnect**: Per-hour flow charges
 - **MediaLive**: Per-hour input charges
 - **Gateway Load Balancer**: Per-hour and data processing charges

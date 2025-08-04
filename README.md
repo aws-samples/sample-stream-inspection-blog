@@ -8,18 +8,19 @@ The system uses a dual-VPC architecture with automatic traffic inspection:
 
 ### Stream Processing VPC (10.0.0.0/16)
 - **MediaConnect** - Receives SRT video streams securely
-- **MediaLive** - Processes and distributes streams across multiple AZs
+- **MediaLive** - Processes and distributes streams across multiple AZs with timecode burn-in
 - **Private subnets** - All streaming components isolated from internet
 
 ### Security Inspection VPC (10.1.0.0/16)  
 - **Gateway Load Balancer** - Routes traffic to security appliances using GENEVE protocol
-- **Auto Scaling security appliances** - EC2 instances (c6in.xlarge) that scale 2-4 based on demand
+- **Auto Scaling security appliances** - EC2 instances (c7gn.large) that scale 2-4 based on demand
 - **Health monitoring** - HTTP health checks ensure appliance readiness
 
 ### Traffic Flow
 1. SRT stream → MediaConnect → Gateway Load Balancer → Security appliances → MediaLive
 2. Security appliances analyze and forward traffic using iptables NAT rules
 3. 100% traffic inspection while maintaining stream quality and performance
+4. **Timecode burn-in** preserves and displays frame-accurate timing throughout the pipeline
 
 ### Network Security
 Simple security group chaining between MediaConnect and MediaLive:
@@ -47,16 +48,53 @@ The security appliances provide:
 - **Conda** - For Python environment management (recommended)
 - **AWS CLI** - Version 2.x configured with your credentials
 - **CDK** - AWS CDK v2 (`npm install -g aws-cdk`)
+- **FFmpeg** - With SRT protocol support (see installation guide below)
+
+### FFmpeg Installation
+
+#### macOS
+```bash
+# Install via Homebrew (includes SRT support)
+brew install ffmpeg
+
+# Verify SRT support
+ffmpeg -protocols | grep srt
+```
+
+#### Linux (Ubuntu/Debian)
+```bash
+# Install FFmpeg
+sudo apt update && sudo apt install ffmpeg
+
+# For newer versions with better SRT support
+sudo snap install ffmpeg
+
+# Verify SRT support
+ffmpeg -protocols | grep srt
+```
+
+#### Windows
+```powershell
+# Install via Chocolatey
+choco install ffmpeg
+
+# Verify SRT support
+ffmpeg -protocols | findstr srt
+```
+
+**Note**: If your FFmpeg installation doesn't include SRT support, see the [FFmpeg Installation Guide](docs/FFMPEG_INSTALLATION.md) for comprehensive installation instructions across all platforms.
 
 ### Environment Setup
 ```bash
-# Create and activate the conda environment (includes Node.js 18+, FFmpeg, codecs)
+# Create and activate the conda environment (includes Node.js 18+, SRT support)
 conda env create -f environment.yml
 conda activate stream-inspection
 
-# Verify setup
-./scripts/utilities/verify-ffmpeg.sh
+# Verify SRT protocol support
+ffmpeg -protocols | grep srt
 ```
+
+**Note**: The environment uses system FFmpeg (Homebrew/apt/etc.) which includes SRT support. See [FFmpeg Installation Guide](docs/FFMPEG_INSTALLATION.md) for detailed installation instructions.
 
 ### AWS Account Requirements
 - **Admin permissions** to create CloudFormation stacks, VPCs, MediaConnect/MediaLive services, EC2 instances, and Load Balancers
@@ -217,13 +255,10 @@ npx cdk deploy StreamInspectionBlogStack \
 ## Testing Your Deployment
 
 ```bash
-# 1. Verify FFmpeg installation and codecs
-npm run verify:ffmpeg
-
-# 2. Start streaming infrastructure (GWLB ASG → MediaConnect flows → MediaLive channels)
+# 1. Start streaming infrastructure (GWLB ASG → MediaConnect flows → MediaLive channels)
 npm run stream:start
 
-# 3. Generate test stream with HLS playback
+# 3. Generate test stream with HLS playback and LTC audio timecode
 npm run stream:generate
 
 # 4. Stop streaming infrastructure (MediaLive channels → MediaConnect flows → GWLB ASG)
@@ -365,17 +400,14 @@ npm run stream:restart
 ### Test Stream Generation
 
 ```bash
-# Generate continuous test stream with HLS playback
-./scripts/operations/run-test-stream.sh
+# Generate continuous test stream with HLS playback and LTC audio timecode
+npm run stream:generate
 
 # Generate 5-minute test stream
-./scripts/operations/run-test-stream.sh --duration 300
+npx ts-node scripts/operations/test-stream.ts --duration 300
 
 # Generate stream without playback
-./scripts/operations/run-test-stream.sh --no-play
-
-# Generate with verbose FFmpeg output
-./scripts/operations/run-test-stream.sh --verbose
+npx ts-node scripts/operations/test-stream.ts --no-play
 ```
 
 ### Key Pair Management
@@ -394,9 +426,6 @@ npm run keypair:download
 ### Troubleshooting
 
 ```bash
-# Verify FFmpeg installation
-npm run verify:ffmpeg
-
 # Check CDK and AWS configuration
 npm run doctor
 
@@ -513,8 +542,11 @@ aws s3 cp s3://gwlb-access-logs-bucket/gwlb-access-logs/ ./ --recursive
 ### Architecture and Design
 - **[Architecture Documentation](ARCHITECTURE.md)** - How the system works, why it's built this way, and technical details
 
+### Installation and Setup
+- **[FFmpeg Installation Guide](docs/FFMPEG_INSTALLATION.md)** - Comprehensive FFmpeg installation across all platforms
+
 ### Stream Management
-- **[Latency Testing](docs/LATENCY_TESTING.md)** - End-to-end streaming performance testing
+- **[Timecode Passthrough and Burn-in](docs/TIMECODE_PASSTHROUGH.md)** - Professional timecode configuration with MediaLive burn-in overlays
 
 ### Code Documentation
 
@@ -586,25 +618,24 @@ stream-intelligence-blog/
 │   │   ├── stream-manager.ts             # Enhanced stream management with GWLB control
 │   │   ├── stream-control.sh             # Shell wrapper for stream management
 │   │   ├── test-stream.ts                # Test stream generation utility
-│   │   ├── run-test-stream.sh            # Test stream runner script
 │   │   ├── download-keypair.ts           # EC2 key pair management
 │   │   ├── cleanup-residual.sh           # Post-deployment cleanup utility
 │   │   ├── verify-cleanup.sh             # Cleanup verification script
 │   │   └── README.md                     # Operations documentation
 │   ├── tests/                            # Testing and validation scripts
-│   │   ├── run-latency-test.sh           # Latency testing framework
-│   │   ├── analyze-latency-results.js    # Latency analysis and reporting
-│   │   ├── test-enhanced-stream-manager.ts # Stream manager validation tests
+│   │   ├── test-stream-manager.ts        # Stream manager validation tests
+│   │   ├── test-stream-manager-fixes.js  # Stream manager fixes validation
+│   │   ├── test-enhanced-stream-manager.ts # Enhanced stream manager tests
 │   │   └── README.md                     # Testing documentation
 │   ├── utilities/                        # Utility and helper scripts
-│   │   ├── verify-ffmpeg.sh             # FFmpeg installation verification
-│   │   └── README.md                    # Utilities documentation
+│   │   └── README.md                     # Utilities documentation
 │   └── README.md                         # Scripts overview
-├── tests/                                 # Additional test examples and utilities
-│   ├── examples/                         # Example test configurations
+├── tests/                                 # Legacy test files (deprecated)
 │   └── latency-test/                     # Legacy latency testing utilities
 ├── docs/                                 # Additional documentation
-│   └── COST_ESTIMATION.md               # Cost analysis and estimation guide
+│   ├── FFMPEG_INSTALLATION.md           # FFmpeg installation guide
+│   ├── COST_ESTIMATION.md               # Cost analysis and estimation guide
+│   └── EXTERNAL_BLOG_POST.md            # External blog post content
 ├── ARCHITECTURE.md                       # Detailed architecture documentation
 ├── README.md                            # Main project documentation
 └── cdk.out/                             # CDK synthesis output (generated)
@@ -891,17 +922,7 @@ npm run stream:stop      # Stops MediaLive channels → stops MediaConnect flows
 npm run stream:status    # Shows GWLB targets, MediaConnect flows, and MediaLive channels status
 npm run stream:restart   # Complete stop and start cycle with proper sequencing
 npm run stream:test      # Validates stream management utilities
-npm run stream:generate  # Creates test video stream with HLS playback
-```
-
-### 📊 Performance Testing
-```bash
-npm run latency:quick     # 30-second test (720p, 1Mbps) - good for basic validation
-npm run latency:standard  # 1-minute test (720p, 2Mbps) - standard quality check
-npm run latency:extended  # 5-minute test (1080p, 4Mbps) - thorough performance test
-npm run latency:stress    # 10-minute test (1080p, 8Mbps) - stress test infrastructure
-npm run latency:analyze   # Analyzes latency test results from log files
-npm run latency:compare   # Compares multiple test results side-by-side
+npm run stream:generate  # Creates test video stream with x264 professional encoding, LTC audio timecode, and HLS playback
 ```
 
 ### 🧹 Cleanup (Critical for Cost Management)
@@ -916,7 +937,6 @@ npm run build            # Compiles TypeScript to JavaScript
 npm run test             # Runs Jest unit tests with coverage report
 npm run lint             # Checks code quality with ESLint
 npm run format           # Auto-formats code with Prettier
-npm run verify:ffmpeg    # Confirms FFmpeg installation and codec support
 ```
 
 ### 🔒 Security & Deployment
@@ -925,6 +945,15 @@ npm run security:check   # Comprehensive security review with cdk-nag
 npm run deploy:secure    # Runs security checks before deployment
 npx cdk deploy StreamInspectionBlogStack --parameters WhitelistCidr=YOUR_IP/32
 npx cdk destroy StreamInspectionBlogStack  # Deletes the entire stack
+```
+
+### 🔍 SRT Protocol Verification
+```bash
+# Verify FFmpeg SRT support
+ffmpeg -protocols | grep srt
+
+# Alternative verification
+npm run verify:srt
 ```
 
 ### 📈 AWS Monitoring 

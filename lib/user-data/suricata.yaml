@@ -5,6 +5,14 @@ vars:
     HOME_NET: "[10.0.0.0/8]"
     EXTERNAL_NET: "!$HOME_NET"
 
+pid-file: /var/run/suricata.pid
+run-as:
+  user: suricata
+  group: suricata
+
+
+# iptables -A FORWARD -p udp --sport 6081 -j NFQUEUE --queue-num 0 --queue-bypass
+
 # NFQUEUE configuration
 nfqueue:
   - id: 0

@@ -3,26 +3,40 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.9
-  - nodejs>=18
-  - pip
-  # FFmpeg and multimedia dependencies
-  - ffmpeg
+  # Node.js and development tools
+  - nodejs>=20
+  
+  # SRT (Secure Reliable Transport) dependencies
+  # Note: Using system FFmpeg (Homebrew/apt/etc.) which has SRT support
+  # The conda FFmpeg doesn't include libsrt support
+  # See docs/FFMPEG_INSTALLATION.md for detailed installation instructions
+  - srt>=1.5.0
+  
+  # Additional streaming protocols and codecs
   - x264
   - x265
-  - libvpx
-  - libopus
-  - libvorbis
-  - libaom
-  - libass
-  - libfreetype
-  - libfontconfig
-  - libfdk-aac
-  - libmp3lame
-  - libtheora
-  - libwebp
-  - openh264
+  
+  # Network and security libraries
+  - openssl>=3.0
+  
+  # Development and build tools
+  - cmake
+  - pkg-config
+  - make
+  
+  # Python dependencies for scripts and utilities
+  - python>=3.11
+  - pip
+  - requests
+  - boto3
+  - pyyaml
+  
+  # System utilities
+  - curl
+  - wget
+  - jq
+  
+  # Additional pip dependencies
   - pip:
-    - aws-cdk-lib
-    - constructs
-    - typescript
+    - aws-cdk-lib>=2.100.0
+    - constructs>=10.0.0

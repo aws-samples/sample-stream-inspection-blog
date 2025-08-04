@@ -53,6 +53,8 @@ export class OttStreamingConstruct extends Construct {
    */
   public readonly playbackUrl: string;
 
+
+
   constructor(scope: Construct, id: string, props: OttStreamingConstructProps) {
     super(scope, id);
 
@@ -82,18 +84,18 @@ export class OttStreamingConstruct extends Construct {
       channelGroupName: channelGroup.channelGroupName,
       channelName: this.mediaPackageChannel.channelName,
       originEndpointName: hlsOriginEndpointName,
-      description: "HLS/TS Origin Endpoint",
+      description: "Standard HLS Origin Endpoint",
       containerType: 'TS',
       startoverWindowSeconds: 1209600,
       segment: {
-        segmentDurationSeconds: 4,
+        segmentDurationSeconds: 4, // Standard segment duration
         segmentName: segmentName
       },
       hlsManifests: [{
         manifestName: multiVariantManifestName,
-        manifestWindowSeconds: 60,
+        manifestWindowSeconds: 60, // Standard HLS manifest window
         programDateTimeIntervalSeconds: 60,
-        childManifestName: variantManifestName,
+        childManifestName: variantManifestName
       }]
     });
 
@@ -121,7 +123,7 @@ export class OttStreamingConstruct extends Construct {
     );
     hlsOriginEndpointPolicy.addDependency(hlsEndpoint);
 
-    // HLS Output
+    // HLS Output URL
     const hlsManifestName = cdk.Fn.join("", [multiVariantManifestName, ".m3u8"]);
 
     const mpChannelEndpointHlsUrl = cdk.Fn.join("/", [
@@ -198,10 +200,19 @@ export class OttStreamingConstruct extends Construct {
       ],
     };
 
-    // Encoder settings for MediaPackage v2
+    // Encoder settings optimized for Low Latency HLS with Timecode Passthrough and Burn-in
+    // 
+    // Timecode Configuration:
+    // - source: 'EMBEDDED' - Uses timecode from input stream
+    // - syncThreshold: 1000000 - 1 second threshold for timecode sync
+    // - timecodeInsertion: 'PIC_TIMING_SEI' - Embeds timecode in H.264 SEI messages
+    // - timedMetadataId3Frame: 'TDRL' - Includes timecode in HLS ID3 tags
+    // - timedMetadataId3Period: 1 - Updates timecode every second
+    // - timecodeBurnin: Visual timecode overlay (bottom-center, green text, matches test-stream style)
     var encoderSettings = {
         timecodeConfig: {
-          source: 'EMBEDDED'
+          source: 'EMBEDDED',
+          syncThreshold: 1000000  // 1 second threshold for timecode sync
         },
         audioDescriptions: [{
           audioSelectorName: 'Default',
@@ -222,19 +233,39 @@ export class OttStreamingConstruct extends Construct {
               framerateControl: 'SPECIFIED',
               framerateNumerator: 30,
               framerateDenominator: 1,
-              gopSize: 60,
+              gopSize: 60, // Standard GOP size
               gopSizeUnits: 'FRAMES',
               profile: 'HIGH',
               level: 'H264_LEVEL_4_1',
               rateControlMode: 'CBR',
               sceneChangeDetect: 'ENABLED',
+              timecodeInsertion: 'PIC_TIMING_SEI', // Insert timecode in SEI
               parControl: 'SPECIFIED',
               parNumerator: 1,
               parDenominator: 1
             }
           },
           height: 1080,
-          width: 1920
+          width: 1920,
+          // Add timecode burn-in overlay (matches test-stream timestamp style)
+          videoPreprocessors: {
+            timecodeBurnin: {
+              fontSize: 34,        // ~70% of 48px (matches test-stream fontSize * 0.7)
+              position: 'BOTTOM_CENTER',
+              prefix: 'TC: ',
+              fontColor: 'GREEN',
+              backgroundColor: 'BLACK',
+              backgroundOpacity: 204,  // ~80% opacity (255 * 0.8)
+              fontOpacity: 255,
+              outline: 'DISABLED',     // Using background instead of outline
+              outlineColor: 'BLACK',
+              outlineSize: 0,
+              shadowColor: 'NONE',
+              shadowOpacity: 0,
+              shadowXOffset: 0,
+              shadowYOffset: 0
+            }
+          }
         }, {
           name: 'video_720p30',
           codecSettings: {
@@ -243,19 +274,39 @@ export class OttStreamingConstruct extends Construct {
               framerateControl: 'SPECIFIED',
               framerateNumerator: 30,
               framerateDenominator: 1,
-              gopSize: 60,
+              gopSize: 60, // Standard GOP size
               gopSizeUnits: 'FRAMES',
               profile: 'HIGH',
               level: 'H264_LEVEL_4',
               rateControlMode: 'CBR',
               sceneChangeDetect: 'ENABLED',
+              timecodeInsertion: 'PIC_TIMING_SEI', // Insert timecode in SEI
               parControl: 'SPECIFIED',
               parNumerator: 1,
               parDenominator: 1
             }
           },
           height: 720,
-          width: 1280
+          width: 1280,
+          // Add timecode burn-in overlay (matches test-stream timestamp style)
+          videoPreprocessors: {
+            timecodeBurnin: {
+              fontSize: 25,        // ~70% of 36px (720p: 720/40 = 18, 18*0.7 = 12.6, scaled up for visibility)
+              position: 'BOTTOM_CENTER',
+              prefix: 'TC: ',
+              fontColor: 'GREEN',
+              backgroundColor: 'BLACK',
+              backgroundOpacity: 204,  // ~80% opacity (255 * 0.8)
+              fontOpacity: 255,
+              outline: 'DISABLED',     // Using background instead of outline
+              outlineColor: 'BLACK',
+              outlineSize: 0,
+              shadowColor: 'NONE',
+              shadowOpacity: 0,
+              shadowXOffset: 0,
+              shadowYOffset: 0
+            }
+          }
         }, {
           name: 'video_480p30',
           codecSettings: {
@@ -264,19 +315,39 @@ export class OttStreamingConstruct extends Construct {
               framerateControl: 'SPECIFIED',
               framerateNumerator: 30,
               framerateDenominator: 1,
-              gopSize: 60,
+              gopSize: 60, // Standard GOP size
               gopSizeUnits: 'FRAMES',
               profile: 'MAIN',
               level: 'H264_LEVEL_3_1',
               rateControlMode: 'CBR',
               sceneChangeDetect: 'ENABLED',
+              timecodeInsertion: 'PIC_TIMING_SEI', // Insert timecode in SEI
               parControl: 'SPECIFIED',
               parNumerator: 1,
               parDenominator: 1
             }
           },
           height: 480,
-          width: 854
+          width: 854,
+          // Add timecode burn-in overlay (matches test-stream timestamp style)
+          videoPreprocessors: {
+            timecodeBurnin: {
+              fontSize: 17,        // ~70% of 24px (480p: 480/40 = 12, 12*0.7 = 8.4, scaled up for visibility)
+              position: 'BOTTOM_CENTER',
+              prefix: 'TC: ',
+              fontColor: 'GREEN',
+              backgroundColor: 'BLACK',
+              backgroundOpacity: 204,  // ~80% opacity (255 * 0.8)
+              fontOpacity: 255,
+              outline: 'DISABLED',     // Using background instead of outline
+              outlineColor: 'BLACK',
+              outlineSize: 0,
+              shadowColor: 'NONE',
+              shadowOpacity: 0,
+              shadowXOffset: 0,
+              shadowYOffset: 0
+            }
+          }
         }, {
           name: 'video_360p30',
           codecSettings: {
@@ -285,22 +356,42 @@ export class OttStreamingConstruct extends Construct {
               framerateControl: 'SPECIFIED',
               framerateNumerator: 30,
               framerateDenominator: 1,
-              gopSize: 60,
+              gopSize: 60, // Standard GOP size
               gopSizeUnits: 'FRAMES',
               profile: 'MAIN',
               level: 'H264_LEVEL_3',
               rateControlMode: 'CBR',
               sceneChangeDetect: 'ENABLED',
+              timecodeInsertion: 'PIC_TIMING_SEI', // Insert timecode in SEI
               parControl: 'SPECIFIED',
               parNumerator: 1,
               parDenominator: 1
             }
           },
           height: 360,
-          width: 640
+          width: 640,
+          // Add timecode burn-in overlay (matches test-stream timestamp style)
+          videoPreprocessors: {
+            timecodeBurnin: {
+              fontSize: 13,        // ~70% of 18px (360p: 360/40 = 9, 9*0.7 = 6.3, scaled up for visibility)
+              position: 'BOTTOM_CENTER',
+              prefix: 'TC: ',
+              fontColor: 'GREEN',
+              backgroundColor: 'BLACK',
+              backgroundOpacity: 204,  // ~80% opacity (255 * 0.8)
+              fontOpacity: 255,
+              outline: 'DISABLED',     // Using background instead of outline
+              outlineColor: 'BLACK',
+              outlineSize: 0,
+              shadowColor: 'NONE',
+              shadowOpacity: 0,
+              shadowXOffset: 0,
+              shadowYOffset: 0
+            }
+          }
         }],
         outputGroups: [{
-          name: 'mediapackagev2',
+          name: 'mediapackagev2-hls',
           outputGroupSettings: {
             hlsGroupSettings: {
               adMarkers: [],
@@ -317,12 +408,37 @@ export class OttStreamingConstruct extends Construct {
               },
               hlsId3SegmentTagging: "ENABLED",
               inputLossAction: "PAUSE_OUTPUT",
-              segmentLength: 1,
+              segmentLength: 4, // Standard segment length
               minSegmentLength: 1,
               programDateTime: "INCLUDE",
-              programDateTimeClock: "SYSTEM_CLOCK",
+              programDateTimeClock: "INITIALIZE_FROM_OUTPUT_TIMECODE",
               programDateTimePeriod: 60,
-              SegmentLength: 4,
+              // Timecode passthrough settings
+              timedMetadataId3Frame: "TDRL", // Enable timecode in ID3 tags
+              timedMetadataId3Period: 1, // Include timecode every second
+              // Standard HLS settings
+              manifestCompression: "NONE",
+              clientCache: "ENABLED",
+              codecSpecification: "RFC_4281",
+              directoryStructure: "SINGLE_DIRECTORY",
+              discontinuityTags: "INSERT",
+              iFrameOnlyPlaylists: "DISABLED",
+              incompleteSegmentBehavior: "AUTO",
+              indexNSegments: 10,
+              ivInManifest: "INCLUDE",
+              ivSource: "FOLLOWS_SEGMENT_NUMBER",
+              keepSegments: 21,
+              keyFormat: "IDENTITY",
+              keyFormatVersions: "1",
+              manifestDurationFormat: "FLOATING_POINT",
+              mode: "LIVE",
+              outputSelection: "MANIFESTS_AND_SEGMENTS",
+              redundantManifest: "DISABLED",
+              segmentationMode: "USE_SEGMENT_DURATION",
+              segmentsPerSubdirectory: 10000,
+              streamInfResolution: "INCLUDE",
+              timestampDeltaMilliseconds: 0,
+              tsFileMode: "SEGMENTED_FILES"
             },
           },
           outputs: [{

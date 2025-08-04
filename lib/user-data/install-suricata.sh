@@ -5,14 +5,15 @@ echo "Installing Suricata..."
 
 # Install dependencies
 amazon-linux-extras install -y epel
-yum -y install git automake autoconf libtool gcc libpcap-devel pcre-devel libyaml-devel file-devel zlib-devel jansson-devel nss-devel libcap-ng-devel libnet-devel tar make libnetfilter_queue-devel lua-devel PyYAML lz4-devel
+yum -y install git automake autoconf libtool gcc libpcap-devel pcre2-devel pcre-devel libyaml-devel file-devel zlib-devel jansson-devel nss-devel libcap-ng-devel libnet-devel tar make libnetfilter_queue-devel lua-devel PyYAML lz4-devel
 
 # Install Rust
-curl -ks https://sh.rustup.rs -sSf | sh -s -- --profile minimal --default-toolchain 1.52.1 --no-modify-path -y
+curl -ks https://sh.rustup.rs -sSf | sh -s -- --profile minimal --default-toolchain 1.63.0 --no-modify-path -y
 export PATH=/root/.cargo/bin:$PATH
 
 # Build libmaxminddb
 cd /tmp
+rm -rf libmaxminddb
 git clone --recursive https://github.com/maxmind/libmaxminddb
 cd libmaxminddb
 ./bootstrap
@@ -33,8 +34,8 @@ make install install-conf
 
 # Create directories and user
 useradd --system --no-create-home --shell /bin/false suricata
-mkdir -p /var/log/suricata /var/lib/suricata/rules /var/run/suricata
-chown -R suricata:suricata /var/log/suricata /var/lib/suricata /var/run/suricata
+mkdir -p /var/log/suricata /var/lib/suricata/rules /var/run/suricata /etc/suricata/
+chown -R suricata:suricata /var/log/suricata /var/lib/suricata /var/run/suricata /etc/suricata/
 
 # Copy configuration
 cp /opt/security-appliance/suricata.yaml /etc/suricata/suricata.yaml

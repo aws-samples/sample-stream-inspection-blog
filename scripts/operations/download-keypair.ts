@@ -130,14 +130,19 @@ async function findKeyPairs(stackName: string, region: string): Promise<KeyPair[
     for (const resource of result.StackResourceSummaries || []) {
       if (resource.ResourceType === 'AWS::EC2::KeyPair') {
         const keyName = resource.PhysicalResourceId;
-        const parameterName = `/ec2/keypair/${keyName}`;
+        
+        // Get KeyPairId for parameter name
+        const keyPairCommand = `aws ec2 describe-key-pairs --key-names "${keyName}" --region "${region}" --query 'KeyPairs[0].KeyPairId' --output text`;
+        const keyPairId = executeCommandText(keyPairCommand).trim();
+        
+        const parameterName = `/ec2/keypair/${keyPairId}`;
         
         keyPairs.push({
           keyName,
           parameterName
         });
         
-        info(`Found key pair: ${keyName}`);
+        info(`Found key pair: ${keyName} (ID: ${keyPairId})`);
       }
     }
     
