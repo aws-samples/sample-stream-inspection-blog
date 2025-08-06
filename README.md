@@ -4,6 +4,8 @@ A secure streaming media system on AWS using Gateway Load Balancer to inspect al
 
 ## Architecture
 
+![Reference architecture for streaming security solution.](/docs/traffic_flow_steps.png)
+
 **Dual-VPC Design with Traffic Inspection:**
 - **Stream Processing VPC** - MediaConnect receives SRT streams → MediaLive processes and distributes
 - **Security Inspection VPC** - Gateway Load Balancer routes traffic through auto-scaling security appliances
